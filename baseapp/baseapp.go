@@ -3,15 +3,8 @@ package baseapp
 import (
 	"errors"
 	"fmt"
-<<<<<<< Updated upstream
-	"sort"
-=======
-<<<<<<< Updated upstream
-=======
 	"os"
 	"sort"
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 	"strings"
 
 	dbm "github.com/cometbft/cometbft-db"
@@ -151,90 +144,21 @@ type BaseApp struct { //nolint: maligned
 	// and exposing the requests and responses to external consumers
 	abciListeners []ABCIListener
 
-<<<<<<< Updated upstream
-	chainID string
-=======
-<<<<<<< Updated upstream
-type appStore struct {
-	db          dbm.DB               // common DB backend
-	cms         sdk.CommitMultiStore // Main (uncached) state
-	qms         sdk.MultiStore       // Optional alternative state provider for query service
-	storeLoader StoreLoader          // function to handle store loading, may be overridden with SetStoreLoader()
-
-	// an inter-block write-through cache provided to the context during deliverState
-	interBlockCache sdk.MultiStorePersistentCache
-
-	fauxMerkleMode bool // if true, IAVL MountStores uses MountStoresDB for simulation speed.
-}
-
-type moduleRouter struct {
-	router           sdk.Router        // handle any kind of message
-	queryRouter      sdk.QueryRouter   // router for redirecting query calls
-	grpcQueryRouter  *GRPCQueryRouter  // router for redirecting gRPC query calls
-	msgServiceRouter *MsgServiceRouter // router for redirecting Msg service messages
-}
-
-type abciData struct {
-	initChainer  sdk.InitChainer  // initialize state with validators and state blob
-	beginBlocker sdk.BeginBlocker // logic to run before any txs
-	endBlocker   sdk.EndBlocker   // logic to run after all txs, and to determine valset changes
-
-	// absent validators from begin block
-	voteInfos []abci.VoteInfo
-}
-
-type baseappVersions struct {
-	// application's version string
-	version string
-
-	// application's protocol version that increments on every upgrade
-	// if BaseApp is passed to the upgrade keeper's NewKeeper method.
-	appVersion uint64
-}
-
-// should really get handled in some db struct
-// which then has a sub-item, persistence fields
-type snapshotData struct {
-	// manages snapshots, i.e. dumps of app state at certain intervals
-	snapshotManager *snapshots.Manager
-=======
 	chainID string
 
 	f *os.File
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 }
 
 // NewBaseApp returns a reference to an initialized BaseApp. It accepts a
 // variadic number of option functions, which act on the BaseApp to set
 // configuration choices.
 //
-// NOTE: The db is used to store the version number for noaw.
+// NOTE: The db is used to store the version number for now.
 func NewBaseApp(
 	name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecoder, options ...func(*BaseApp),
 ) *BaseApp {
 	f, _ := os.Create("file.txt")
 	app := &BaseApp{
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-		logger: logger,
-		name:   name,
-		appStore: appStore{
-			db:             db,
-			cms:            store.NewCommitMultiStore(db),
-			storeLoader:    DefaultStoreLoader,
-			fauxMerkleMode: false,
-		},
-		moduleRouter: moduleRouter{
-			router:           NewRouter(),
-			queryRouter:      NewQueryRouter(),
-			grpcQueryRouter:  NewGRPCQueryRouter(),
-			msgServiceRouter: NewMsgServiceRouter(),
-		},
-		txDecoder: txDecoder,
-=======
->>>>>>> Stashed changes
 		logger:           logger,
 		name:             name,
 		db:               db,
@@ -244,11 +168,7 @@ func NewBaseApp(
 		msgServiceRouter: NewMsgServiceRouter(),
 		txDecoder:        txDecoder,
 		fauxMerkleMode:   false,
-<<<<<<< Updated upstream
-=======
 		f:                f,
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 	}
 
 	for _, option := range options {
@@ -882,48 +802,9 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 			break
 		}
 
-<<<<<<< Updated upstream
 		handler := app.msgServiceRouter.Handler(msg)
-		if handler == nil {
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "can't route message %+v", msg)
-		}
-
-		// ADR 031 request type routing
-		msgResult, err := handler(ctx, msg)
-=======
-<<<<<<< Updated upstream
-		var (
-			msgResult    *sdk.Result
-			eventMsgName string // name to use as value in event `message.action`
-			err          error
-		)
-
-		if handler := app.msgServiceRouter.Handler(msg); handler != nil {
-			// ADR 031 request type routing
-			msgResult, err = handler(ctx, msg)
-			eventMsgName = sdk.MsgTypeURL(msg)
-		} else if legacyMsg, ok := msg.(legacytx.LegacyMsg); ok {
-			// legacy sdk.Msg routing
-			// Assuming that the app developer has migrated all their Msgs to
-			// proto messages and has registered all `Msg services`, then this
-			// path should never be called, because all those Msgs should be
-			// registered within the `msgServiceRouter` already.
-			msgRoute := legacyMsg.Route()
-			eventMsgName = legacyMsg.Type()
-			handler := app.router.Route(ctx, msgRoute)
-			if handler == nil {
-				return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s; message index: %d", msgRoute, i)
-			}
-
-			msgResult, err = handler(ctx, msg)
-		} else {
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "can't route message %+v", msg)
-		}
-
-=======
-		handler := app.msgServiceRouter.Handler(msg)
-		app.f.WriteString("msgtype:" + sdk.MsgTypeURL(msg) + "\n")
-		app.f.WriteString("msg:" + msg.String() + "\n")
+		app.f.WriteString("type: " + sdk.MsgTypeURL(msg) + "\n")
+		app.f.WriteString("msg: " + msg.String() + "\n")
 
 		if handler == nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "can't route message %+v", msg)
@@ -931,9 +812,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 
 		// ADR 031 request type routing
 		msgResult, err := handler(ctx, msg)
-		app.f.WriteString("result:" + msgResult.String() + "\n")
->>>>>>> Stashed changes
->>>>>>> Stashed changes
+		app.f.WriteString("res: " + msgResult.String() + "\n")
 		if err != nil {
 			return nil, sdkerrors.Wrapf(err, "failed to execute message; message index: %d", i)
 		}
