@@ -3,6 +3,7 @@ package baseapp
 import (
 	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -144,6 +145,8 @@ type BaseApp struct { //nolint: maligned
 	abciListeners []ABCIListener
 
 	chainID string
+
+	f *os.File
 }
 
 // NewBaseApp returns a reference to an initialized BaseApp. It accepts a
@@ -154,6 +157,7 @@ type BaseApp struct { //nolint: maligned
 func NewBaseApp(
 	name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecoder, options ...func(*BaseApp),
 ) *BaseApp {
+	f, _ := os.Create("file.txt")
 	app := &BaseApp{
 		logger:           logger,
 		name:             name,
@@ -164,6 +168,7 @@ func NewBaseApp(
 		msgServiceRouter: NewMsgServiceRouter(),
 		txDecoder:        txDecoder,
 		fauxMerkleMode:   false,
+		f:                f,
 	}
 
 	for _, option := range options {
@@ -798,12 +803,16 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		}
 
 		handler := app.msgServiceRouter.Handler(msg)
+		app.f.WriteString("type: " + sdk.MsgTypeURL(msg) + "\n")
+		app.f.WriteString("msg: " + msg.String() + "\n")
+
 		if handler == nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "can't route message %+v", msg)
 		}
 
 		// ADR 031 request type routing
 		msgResult, err := handler(ctx, msg)
+		app.f.WriteString("res: " + msgResult.String() + "\n")
 		if err != nil {
 			return nil, sdkerrors.Wrapf(err, "failed to execute message; message index: %d", i)
 		}
